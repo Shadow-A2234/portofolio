@@ -73,42 +73,78 @@ const TypingSnippet = ({ text, color, opacity }: { text: string; color: string; 
 const HomeBiography = ({ activeTab }: { activeTab: string }) => {
   const [visibleChars, setVisibleChars] = useState(0);
   const [isDone, setIsDone] = useState(false);
+  const [isTypingGlitch, setIsTypingGlitch] = useState(false);
+  const [isPeriodicGlitch, setIsPeriodicGlitch] = useState(false);
   const totalLength = 550; 
 
+  const segments = [
+    { text: "Saya adalah mahasiswa D3 Teknik Informatika di Politeknik Hasnur yang berfokus pada ", type: "normal" },
+    { text: "Full-Stack Web Development (Laravel & Next.js)", type: "white-bold" },
+    { text: ", rekayasa keamanan ofensif, serta optimalisasi pertumbuhan media digital. Memiliki rekam jejak dalam membangun sistem terintegrasi ", type: "normal" },
+    { text: "Payment Gateway", type: "cyan-medium" },
+    { text: ", mengimplementasikan model ", type: "normal" },
+    { text: "Machine Learning (Random Forest) WAF", type: "purple-medium" },
+    { text: ", serta melakukan audit penetrasi jaringan secara etis. Di luar arsitektur kode, saya juga seorang ", type: "normal" },
+    { text: "Growth Hacker", type: "white-medium" },
+    { text: " yang sukses mengeksploitasi algoritma media sosial organik hingga menembus angka jutaan impresi.", type: "normal" }
+  ];
+
+  // 1. Logika Mengetik dengan Deteksi Segmen Tebal/Berwarna
   useEffect(() => {
     if (activeTab !== "HOME") {
       setVisibleChars(0);
       setIsDone(false);
+      setIsTypingGlitch(false);
       return;
     }
     let i = 0;
     setIsDone(false);
+    
     const timer = setInterval(() => {
       i += 1; 
+      
       if (i >= totalLength) {
         setVisibleChars(totalLength);
         setIsDone(true);
+        setIsTypingGlitch(false);
         clearInterval(timer);
       } else {
         setVisibleChars(i);
+
+        // Hitung segmen mana yang sedang aktif diketik
+        let currentAccumulated = 0;
+        let activeSegmentType = "normal";
+        
+        for (const seg of segments) {
+          currentAccumulated += seg.text.length;
+          if (i <= currentAccumulated) {
+            activeSegmentType = seg.type;
+            break;
+          }
+        }
+
+        // ⚡ SELURUHNYA NGE-GLITCH: Jika segmen berwarna/tebal muncul, picu glitch brutal pada seluruh wadah (peluang 38%)
+        if (activeSegmentType !== "normal" && Math.random() < 0.38) {
+          setIsTypingGlitch(true);
+        } else {
+          setIsTypingGlitch(false);
+        }
       }
-    }, 20); 
+    }, 12); 
     return () => clearInterval(timer);
   }, [activeTab]);
 
-  const renderMaskedText = (chars: number) => {
-    const segments = [
-      { text: "Saya adalah mahasiswa D3 Teknik Informatika di Politeknik Hasnur yang berfokus pada ", type: "normal" },
-      { text: "Full-Stack Web Development (Laravel & Next.js)", type: "white-bold" },
-      { text: ", rekayasa keamanan ofensif, serta optimalisasi pertumbuhan media digital. Memiliki rekam jejak dalam membangun sistem terintegrasi ", type: "normal" },
-      { text: "Payment Gateway", type: "cyan-medium" },
-      { text: ", mengimplementasikan model ", type: "normal" },
-      { text: "Machine Learning (Random Forest) WAF", type: "purple-medium" },
-      { text: ", serta melakukan audit penetrasi jaringan secara etis. Di luar arsitektur kode, saya juga seorang ", type: "normal" },
-      { text: "Growth Hacker", type: "white-medium" },
-      { text: " yang sukses mengeksploitasi algoritma media sosial organik hingga menembus angka jutaan impresi.", type: "normal" }
-    ];
+  // 2. Efek Kedip Berkala Setiap 4 Detik Saat Posisi Diam
+  useEffect(() => {
+    if (!isDone || activeTab !== "HOME") return;
+    const interval = setInterval(() => {
+      setIsPeriodicGlitch(true);
+      setTimeout(() => setIsPeriodicGlitch(false), 100);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isDone, activeTab]);
 
+  const renderMaskedText = (chars: number) => {
     let accumulatedLength = 0;
     return (
       <>
@@ -120,20 +156,21 @@ const HomeBiography = ({ activeTab }: { activeTab: string }) => {
           const textToShow = seg.text.slice(0, sliceEnd);
           accumulatedLength += segLength;
 
-          if (seg.type === "white-bold") {
-            return <span key={idx} className="text-white font-medium">{textToShow}</span>;
-          } else if (seg.type === "cyan-medium") {
-            return <span key={idx} className="text-cyan-400 font-medium">{textToShow}</span>;
-          } else if (seg.type === "purple-medium") {
-            return <span key={idx} className="text-purple-400 font-medium">{textToShow}</span>;
-          } else if (seg.type === "white-medium") {
-            return <span key={idx} className="text-white font-medium">{textToShow}</span>;
-          }
-          return <span key={idx}>{textToShow}</span>;
+          let colorClass = "";
+          if (seg.type === "white-bold") colorClass = "text-white font-medium";
+          else if (seg.type === "cyan-medium") colorClass = "text-cyan-400 font-medium";
+          else if (seg.type === "purple-medium") colorClass = "text-purple-400 font-medium";
+          else if (seg.type === "white-medium") colorClass = "text-white font-medium";
+
+          return (
+            <span key={idx} className={colorClass}>
+              {textToShow}
+            </span>
+          );
         })}
         <motion.span 
           animate={isDone ? { opacity: [0.2, 1, 0.2] } : { opacity: [1, 0, 1] }} 
-          transition={isDone ? { repeat: Infinity, duration: 1.4, ease: "easeInOut" } : { repeat: Infinity, duration: 0.3 }} 
+          transition={isDone ? { repeat: Infinity, duration: 1.4, ease: "easeInOut" } : { repeat: Infinity, duration: 0.15 }} 
           className="font-black text-purple-400 ml-0.5"
         >
           _
@@ -143,9 +180,48 @@ const HomeBiography = ({ activeTab }: { activeTab: string }) => {
   };
 
   return (
-    <div className="mt-6 text-gray-400 text-sm font-light leading-relaxed max-w-2xl border-l border-purple-500/30 pl-4 text-justify min-h-[140px] md:min-h-[100px]">
+    <motion.div 
+      animate={
+        !isDone
+          ? {
+              // 1️⃣ FASE MASUK: Seluruh paragraf diguncang brutal saat kalimat tebal/berwarna aktif diketik
+              x: isTypingGlitch ? [0, -4, 5, -3, 0] : 0,
+              y: isTypingGlitch ? [0, 2, -2, 0] : 0,
+              skewX: isTypingGlitch ? [0, -5, 5, 0] : 0,
+              filter: isTypingGlitch ? ["blur(0px)", "blur(1.5px)", "blur(0px)"] : "blur(0px)",
+              textShadow: isTypingGlitch 
+                ? "2px 0 0 #ef4444, -2px 0 0 #22d3ee, 0 0 5px rgba(168,85,247,0.4)" 
+                : "0 0 5px rgba(168,85,247,0.4)" // Glow lembut konstan teks utama
+            }
+          : isPeriodicGlitch 
+          ? {
+              // 2️⃣ FASE DIAM (KEDIP BERKALA): Kejutan kilat sinyal putus 100ms setiap 4 detik
+              x: [0, -1.5, 1.5, 0],
+              opacity: [1, 0.5, 0.9, 1],
+              textShadow: "1.5px 0 0 #ef4444, -1.5px 0 0 #22d3ee, 0 0 5px rgba(168,85,247,0.4)"
+            }
+          : {
+              // 3️⃣ FASE DIAM NORMAL: Goyangan orisinal RGB Kali Linux DI-SLOW (Duration 1.2s) + GLOW LEMBUT KONSTAN
+              x: [0, -0.4, 0.4, 0],
+              y: [0, 0.2, -0.2, 0],
+              textShadow: [
+                "0 0 5px rgba(168,85,247,0.4), 0.5px 0 0 rgba(168,85,247,0.3), -0.5px 0 0 rgba(34,211,238,0.3)",
+                "0 0 5px rgba(168,85,247,0.4), -0.5px 0.3px 0 rgba(168,85,247,0.2), 0.5px -0.3px 0 rgba(34,211,238,0.2)",
+                "0 0 5px rgba(168,85,247,0.4), 0.5px -0.3px 0 rgba(168,85,247,0.2), -0.5px 0.3px 0 rgba(34,211,238,0.2)"
+              ]
+            }
+      }
+      transition={
+        !isDone 
+          ? { duration: 0.08, ease: "linear" }
+          : isPeriodicGlitch
+          ? { duration: 0.1, ease: "linear" }
+          : { repeat: Infinity, duration: 1.2, ease: "linear", repeatType: "mirror" } // ⚡ GOYANGAN DI-SLOW BIAR COMFY
+      }
+      className="mt-6 text-gray-400 text-sm font-light leading-relaxed max-w-2xl border-l border-purple-500/30 pl-4 text-justify min-h-[140px] md:min-h-[100px] select-none font-sans"
+    >
       {renderMaskedText(visibleChars)}
-    </div>
+    </motion.div>
   );
 };
 
@@ -215,10 +291,67 @@ const CountUpMatrix = ({ value, suffix = "", duration = 2 }: { value: string; su
   );
 };
 
+const EvidenceLightbox = ({ imgUrl, onClose }: { imgUrl: string; onClose: () => void }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isZoomed) return;
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setMousePos({ x, y });
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 md:p-8 cursor-zoom-out select-none"
+    >
+      <div className="relative max-w-5xl w-full max-h-[85vh] overflow-hidden flex items-center justify-center bg-transparent transition-all" onClick={(e) => e.stopPropagation()}>
+        <div 
+          onMouseMove={handleMouseMove}
+          onClick={() => setIsZoomed(!isZoomed)}
+          className={`relative overflow-hidden transition-shadow duration-300 ${isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+          style={{ maxWidth: '100%', maxHeight: '80vh' }}
+        >
+          <img 
+            src={imgUrl} 
+            alt="Operational Proof Log" 
+            className="w-full h-auto max-h-[80vh] object-contain transition-transform duration-150 ease-out"
+            style={{
+              transform: isZoomed ? `scale(2.2)` : `scale(1)`,
+              transformOrigin: isZoomed ? `${mousePos.x}% ${mousePos.y}%` : 'center center'
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const parent = e.currentTarget.parentElement;
+              if (parent && !parent.querySelector('.fallback-txt')) {
+                const txt = document.createElement('div');
+                txt.className = 'fallback-txt font-mono text-center text-amber-500 p-8 text-xs border border-dashed border-amber-500/20 bg-amber-950/10 uppercase tracking-wider';
+                txt.innerHTML = '[⚠️ ALERT: EVIDENCE_FILE_NOT_FOUND]<br><br>Shadow-sama, silakan taruh berkas foto hasil sensor Anda ke dalam folder "public/docs/" agar visual log ini dapat dirender sempurna.';
+                parent.appendChild(txt);
+              }
+            }}
+          />
+        </div>
+      </div>
+      <div className="text-[10px] font-mono text-zinc-500 mt-4 uppercase tracking-widest pointer-events-none text-center space-y-1">
+        <div>[ {isZoomed ? "Zoom Active // Move mouse to pan log matrix" : "Click image to inject deep zoom lens"} ]</div>
+        <div className="opacity-60">Click anywhere in the blank space to exit</div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function WutheringShadowPortfolio() {
   const [activeTab, setActiveTab] = useState("HOME");
   const [elements, setElements] = useState<MatrixElement[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeEvidenceImg, setActiveEvidenceImg] = useState<string | null>(null);
   const [isLocalhost, setIsLocalhost] = useState(false);
   
   useEffect(() => {
@@ -230,7 +363,6 @@ export default function WutheringShadowPortfolio() {
     }
   }, []);
 
-  // Kunci data taktis secara permanen, avatar langsung membaca folder public/profil.png Anda
   const [mediaData, setMediaData] = useState<MediaDataStructure>({
     igViews: "553K",
     igLikes: "58.3K",
@@ -257,6 +389,10 @@ export default function WutheringShadowPortfolio() {
 
   const codeTools = [
     { name: "KALI LINUX", type: "OS Security", logo: "https://logodix.com/logo/1287701.png", animateType: "glitch" },
+    { name: "BLACKARCH LINUX", type: "Penetration OS", logo: "https://upload.wikimedia.org/wikipedia/en/a/a8/BlackArch_Logo.png", animateType: "glitch" },
+    { name: "BURP SUITE", type: "Web Interceptor", logo: "/burpsuite.png", animateType: "stagger" },
+    { name: "NMAP", type: "Network Scanner", logo: "https://upload.wikimedia.org/wikipedia/commons/7/73/Logo_nmap.png", animateType: "stagger" },
+    { name: "WIRESHARK", type: "Packet Sniffer", logo: "/wireshark.png", animateType: "stagger" },
     { name: "VS CODE", type: "Editor IDE", logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vscode/vscode-original.svg", animateType: "stagger" },
     { name: "ANDROID STUDIO", type: "Mobile IDE", logo: "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/android-studio-icon.png", animateType: "stagger" },
     { name: "NETBEANS", type: "Java IDE", logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/netbeans/netbeans-original.svg", animateType: "stagger" }
@@ -270,15 +406,34 @@ export default function WutheringShadowPortfolio() {
     { name: "ADOBE ILLUSTRATOR", type: "Vector Graphics", logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-plain.svg", animateType: "stagger" }
   ];
 
+  const aiTools = [
+    { name: "GEMINI AI", type: "Priority Use", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Google_Gemini_icon_2025.svg/1280px-Google_Gemini_icon_2025.svg.png" },
+    { name: "CLAUDE AI", type: "Vibe Coding", logo: "https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/dark/claude-color.png" },
+    { name: "ANTIGRAVITY", type: "Vibe Coding Engine", logo: "https://antigravity.google/assets/image/brand/antigravity-icon__full-color.png" },
+    { name: "BLACKBOX AI", type: "Code Generation", logo: "https://cdn-1.webcatalog.io/catalog/blackbox/blackbox-icon-filled-256.webp?v=1714782255161" },
+    { name: "CHATGPT", type: "Auxiliary Assistant", logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" }
+  ];
+
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  
+  // States Kendali Utama Simulasi Lab Arena
   const [labSubTab, setLabSubTab] = useState("WAF");
   const [wafInput, setWafInput] = useState("");
   const [wafStatus, setWafStatus] = useState("WAITING");
   const [ddosTarget, setDdosTarget] = useState("");
   const [ddosLogs, setDdosLogs] = useState<string[]>([]);
   const [ddosStatus, setDdosStatus] = useState("STANDBY");
+  
+  // States Baru Tambahan Sinkronisasi Arena DDoS Instan
+  const [serverHealth, setServerHealth] = useState(100);
+  const [firewallActive, setFirewallActive] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [botPackets, setBotPackets] = useState<{ id: number; left: number; top: number; size: number }[]>([]);
+  
+  const packetIdRef = useRef(0);
+  const loopRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -306,31 +461,72 @@ export default function WutheringShadowPortfolio() {
   };
 
   const startDdosSimulation = () => {
-    if(!ddosTarget) return alert("ENTER TARGET SUBNET PORT FIRST!");
-    setDdosStatus("FLOODING TARGET"); setDdosLogs([]);
+    if (!ddosTarget) return alert("ENTER TARGET SUBNET PORT FIRST!");
+    setDdosStatus("FLOODING TARGET"); 
+    setDdosLogs([]);
+    setServerHealth(100);
+    setBotPackets([]);
+    
     let counter = 0;
-    const interval = setInterval(() => {
-      if(counter < 10) {
+    if (loopRef.current) clearInterval(loopRef.current);
+
+    loopRef.current = setInterval(() => {
+      if (counter < 15) {
         setDdosLogs(prev => [...prev, `[SEND]: Packet size 64KB -> ${ddosTarget}:8080 [SYN_FLOOD] -> STATUS: 200 OK (REQ_OVERFLOW)`]);
+        
+        // Buat posisi partikel penyerang menyebar acak dari perimeter kiri dan kanan
+        const isLeft = Math.random() > 0.5;
+        const randomLeft = isLeft ? Math.random() * 20 : 80 + Math.random() * 15;
+        const randomTop = Math.random() * 75;
+        
+        setBotPackets(prev => [...prev, {
+          id: packetIdRef.current++,
+          left: randomLeft,
+          top: randomTop,
+          size: Math.floor(Math.random() * 10) + 6
+        }]);
+
+        setServerHealth(prev => {
+          let damage = firewallActive ? 2 : 12; 
+          let nextHealth = prev - damage;
+          if (nextHealth <= 0) {
+            nextHealth = 0;
+            setDdosStatus("TARGET DROPPED");
+            if (loopRef.current) clearInterval(loopRef.current);
+          }
+          return nextHealth;
+        });
+
         counter++;
       } else {
         setDdosLogs(prev => [...prev, `[CRITICAL]: Buffer pool exhausted on ${ddosTarget} // TARGET COLLAPSED.`]);
         setDdosStatus("TARGET DROPPED");
-        clearInterval(interval);
+        if (loopRef.current) clearInterval(loopRef.current);
       }
-    }, 250);
+    }, 280);
   };
+
+  const resetDdosSystem = () => {
+    if (loopRef.current) clearInterval(loopRef.current);
+    setDdosStatus("STANDBY");
+    setDdosLogs([]);
+    setServerHealth(100);
+    setBotPackets([]);
+  };
+
+  useEffect(() => {
+    return () => { if (loopRef.current) clearInterval(loopRef.current); };
+  }, []);
 
   const navItems = [
     { id: "HOME", label: "HOME", icon: "◈" },
     { id: "MEDIA", label: "MEDIA", icon: "◪" },
     { id: "ARSENAL", label: "PROJECTS NOW", icon: "⚔" },
-    { id: "INTELLIGENCE", label: "INTELLIGENCE", icon: "📜" },
-    { id: "TOOLS", label: "TOOLS", icon: "⬢" },
-    { id: "LAB", label: "LAB", icon: "🧪" },
+    { id: "INTELLIGENCE", label: "INTELLIGENCE", icon: "✎" },
+    { id: "TOOLS", label: "TOOLS", icon: "⚙" },
+    { id: "LAB", label: "LAB", icon: "⌬" },
   ];
 
-  // PENYEMBUHAN TOTAL ERROR: Memberikan tipe data 'Variants' serta mengunci nilai string literal spring
   const stackCardVariants: Variants = {
     initial: { opacity: 0, scale: 0.9, z: -100, x: 120, filter: "blur(3px)" },
     animate: { 
@@ -548,14 +744,94 @@ export default function WutheringShadowPortfolio() {
           )}
 
           {activeTab === "INTELLIGENCE" && (
-            <motion.section key="intelligence" variants={stackCardVariants} initial="initial" animate="animate" exit="exit" className="max-w-4xl mx-auto w-full bg-[#0d0d0d]/90 p-10 border-l-4 border-red-600 pb-12 shadow-xl">
-               <span className="text-red-500 font-mono font-bold text-xs opacity-50">DATA INTEL DISCLOSURES REPORT</span>
-               <h3 className="text-3xl font-black mt-2 mb-6 italic text-red-500 font-mono">GOV-SYSTEM PENETRATION LOGS</h3>
-               <div className="space-y-4 font-mono text-xs text-gray-400 leading-relaxed">
-                 <p>{" > "}[AUDIT]: Penemuan celah SQL Injection kritis pada server publik milik instansi pemerintah.</p>
-                 <p>{" > "}[DISCLOSURE]: Dokumen Proof of Concept (PoC) serangan berhasil dianalisis dan diamankan ke repositori internal.</p>
-                 <p className="bg-red-950/20 p-3 border border-red-900/40 text-red-400 text-xs">Aksi peretasan etis (Ethical Hacking) ini membuktikan kapabilitas penetrasi dunia nyata secara mutlak di luar sekadar teori kelas.</p>
-               </div>
+            <motion.section key="intelligence" variants={stackCardVariants} initial="initial" animate="animate" exit="exit" className="max-w-4xl mx-auto w-full pb-12 bg-transparent">
+              <div className="p-6 bg-black/40 border border-emerald-500/20 rounded-lg glass font-mono">
+                <div className="flex justify-between items-start mb-6 border-b border-emerald-500/20 pb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                      INTERNAL INTELLIGENCE ARCHIVE
+                    </h3>
+                    <p className="text-[10px] text-gray-400 mt-1">Independent Vulnerability & Threat Assessment Logs</p>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+                    STATUS: DECLASSIFIED
+                  </span>
+                </div>
+
+                {/* Item Laporan Utama */}
+                <div className="bg-zinc-950/80 border-l-4 border-red-600 p-4 rounded-r-sm hover:bg-zinc-900/30 transition-all group mb-6">
+                  <div className="flex justify-between items-start flex-wrap gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] bg-red-950 text-red-500 px-1.5 py-0.5 rounded font-bold border border-red-900/30">HIGH CVSS 8.1</span>
+                        <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
+                          Local File Inclusion (LFI) Subdomain Assessment
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        Target Scope: <span className="text-zinc-400 bg-black px-1 rounded text-[10px] border border-zinc-800">https://██████████-bpti.kemdikbud.go.id</span>
+                      </p>
+                      <p className="text-xs text-gray-400 pt-2 max-w-2xl leading-relaxed text-justify">
+                        Menemukan celah keamanan sanitasi input pada parameter file web utama yang memungkinkan penyerang luar membaca file sensitif internal server (<code className="text-red-400 font-bold">/etc/passwd</code>) tanpa autentikasi. Dokumen Proof of Concept (PoC) serangan berhasil diamankan.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <a 
+                        href="/docs/Security_Report_LFI_Kemendikbud_BPTI_Censored-v2.pdf" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-emerald-400 border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 rounded-xs hover:bg-emerald-500 hover:text-black transition-all font-bold cursor-pointer"
+                      >
+                        View Full PDF
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sektor Visual Evidence */}
+                <div className="space-y-3">
+                  <span className="text-[10px] text-gray-500">CAPTURED STEP-BY-STEP EVIDENCE ARCHIVES (CLICK TO VIEW):</span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[1, 2, 3, 4].map((step) => {
+                      const imgUrl = `/docs/evidence-${step}.png`;
+                      return (
+                        <div 
+                          key={step} 
+                          onClick={() => setActiveEvidenceImg(imgUrl)}
+                          className="border border-white/5 bg-black/60 p-2 rounded-sm group/img relative overflow-hidden cursor-zoom-in hover:border-emerald-500/30 transition-all"
+                        >
+                          <div className="flex justify-between items-center mb-1 text-[9px] text-zinc-500 font-mono">
+                            <span>STEP_0{step}_LOG.PNG</span>
+                            <span className="opacity-0 group-hover/img:opacity-100 text-emerald-400 transition-opacity">🔍</span>
+                          </div>
+                          <div className="w-full h-24 bg-zinc-900 rounded-xs overflow-hidden border border-white/5 relative">
+                            <img 
+                              src={imgUrl} 
+                              alt={`Evidence Step ${step}`}
+                              className="w-full h-full object-cover grayscale opacity-70 group-hover/img:grayscale-0 group-hover/img:opacity-100 transition-all duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/20 group-hover/img:bg-transparent transition-colors" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* --- ADVANCED PAN & ZOOM LIGHTBOX MATRIX OVERLAY LAYER --- */}
+              <AnimatePresence>
+                {activeEvidenceImg && (
+                  <EvidenceLightbox imgUrl={activeEvidenceImg} onClose={() => setActiveEvidenceImg(null)} />
+                )}
+              </AnimatePresence>
+
             </motion.section>
           )}
 
@@ -565,8 +841,20 @@ export default function WutheringShadowPortfolio() {
                  <div className="text-xs font-mono text-purple-400 mb-4 tracking-widest">CODING & PENETRATION ARSENAL</div>
                  <motion.div variants={containerGridVariants} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    {codeTools.map((tool, i) => (
-                     <motion.div key={i} variants={tool.animateType === "glitch" ? kaliGlitchVariants : toolItemVariants} className="p-6 border border-white/5 bg-[#0c0c11]/90 flex flex-col items-center justify-center rounded-xs hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.1)] transition-all">
-                       <img src={tool.logo} alt={tool.name} className={`w-12 h-12 mb-3 object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] ${tool.animateType === "glitch" ? "animate-pulse" : ""}`} />
+                     <motion.div 
+                       key={i} 
+                       variants={tool.animateType === "glitch" ? kaliGlitchVariants : toolItemVariants} 
+                       className={`p-6 border border-white/5 bg-[#0c0c11]/90 flex flex-col items-center justify-center rounded-xs hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.1)] transition-all ${
+                         tool.animateType === "glitch" ? "border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.05)]" : ""
+                       }`}
+                     >
+                       <img 
+                         src={tool.logo} 
+                         alt={tool.name} 
+                         className={`w-12 h-12 mb-3 object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.15)] ${
+                           tool.animateType === "glitch" ? "animate-pulse" : ""
+                         }`} 
+                       />
                        <div className="font-mono font-bold text-xs text-white text-center tracking-tight">{tool.name}</div>
                        <div className="text-[9px] font-mono text-gray-500 mt-1 uppercase">{tool.type}</div>
                      </motion.div>
@@ -586,6 +874,19 @@ export default function WutheringShadowPortfolio() {
                    ))}
                  </motion.div>
                </div>
+
+               <div>
+                 <div className="text-xs font-mono text-purple-400 mb-4 tracking-widest">ARTIFICIAL INTELLIGENCE MATRIX</div>
+                 <motion.div variants={containerGridVariants} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                   {aiTools.map((tool, i) => (
+                     <motion.div key={i} variants={toolItemVariants} className="p-4 border border-white/5 bg-[#0c0c11]/90 flex flex-col items-center justify-center rounded-xs hover:border-purple-500/50 hover:shadow-[0_0_12px_rgba(168,85,247,0.1)] transition-all">
+                       <img src={tool.logo} alt={tool.name} className="w-10 h-10 mb-2 object-contain filter drop-shadow-[0_0_4px_rgba(255,255,255,0.15)]" />
+                       <div className="font-mono font-bold text-[11px] text-white text-center tracking-tight truncate w-full">{tool.name}</div>
+                       <div className="text-[8px] font-mono text-cyan-400 mt-1 uppercase font-semibold">{tool.type}</div>
+                     </motion.div>
+                   ))}
+                 </motion.div>
+               </div>
             </motion.section>
           )}
 
@@ -596,6 +897,7 @@ export default function WutheringShadowPortfolio() {
                     <button onClick={() => setLabSubTab("WAF")} className={`pb-2 transition-all ${labSubTab === "WAF" ? "text-cyan-400 border-b border-cyan-400" : "text-gray-500"}`}>[ RANDOM FOREST WAF FILTER ]</button>
                     <button onClick={() => setLabSubTab("DDOS")} className={`pb-2 transition-all ${labSubTab === "DDOS" ? "text-purple-400 border-b border-purple-400" : "text-gray-500"}`}>[ VOID BREAKER DDoS MATRIX ]</button>
                   </div>
+                  
                   {labSubTab === "WAF" && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                       <input type="text" value={wafInput} onChange={(e) => setWafInput(e.target.value)} placeholder="Payload input, contoh: ' OR SELECT * FROM users --" className="w-full bg-[#050507] border border-white/10 p-4 font-mono text-purple-400 text-sm outline-none focus:border-purple-500" />
@@ -610,16 +912,137 @@ export default function WutheringShadowPortfolio() {
                       <div className="p-4 bg-black border border-white/5 font-mono text-xs text-center text-purple-400 font-bold">STATE OUTPUT: {wafStatus}</div>
                     </motion.div>
                   )}
+                  
+                  {/* --- ARENA INTERAKTIF VOID BREAKER DDOS DISINKRONISASIKAN --- */}
                   {labSubTab === "DDOS" && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                      <p className="text-xs text-gray-500 font-mono">TARGET VECTOR EXPLOIT CONFIGURATION:</p>
-                      <input type="text" value={ddosTarget} onChange={(e) => setDdosTarget(e.target.value)} placeholder="Masukkan subnet IP Target, contoh: 192.168.100.22" className="w-full bg-[#050507] border border-white/10 p-3 font-mono text-cyan-400 text-xs outline-none focus:border-cyan-500" />
-                      <button onClick={startDdosSimulation} disabled={ddosStatus.includes("FLOODING")} className="px-6 py-2.5 bg-red-950 border border-red-600 text-red-400 font-mono text-xs font-bold disabled:opacity-40">LAUNCH INTENSE FLOOD ATTACK</button>
-                      <div className="w-full h-36 bg-black p-4 font-mono text-[10px] text-red-500 overflow-y-auto space-y-1 border border-white/5">
-                        {ddosLogs.length === 0 && <span>// STRESS TEST TARGET SYSTEM STANDBY...</span>}
-                        {ddosLogs.map((l, i) => <div key={i}>{l}</div>)}
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                      
+                      {/* INPUT CONFIG VECTOR VECTOR */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-black/40 p-4 border border-white/5 rounded-xs">
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] font-mono text-gray-500 uppercase">Target Vector Exploit Subnet:</label>
+                          <input type="text" value={ddosTarget} onChange={(e) => setDdosTarget(e.target.value)} placeholder="Masukkan subnet IP Target, contoh: 192.168.100.22" className="w-full bg-[#050507] border border-white/10 p-2.5 font-mono text-cyan-400 text-xs outline-none focus:border-cyan-500" />
+                        </div>
+                        <button onClick={startDdosSimulation} disabled={ddosStatus.includes("FLOODING") || serverHealth <= 0} className="w-full py-2.5 bg-red-950/40 border border-red-600 text-red-400 font-mono text-xs font-bold hover:bg-red-600 hover:text-black transition-all disabled:opacity-30 tracking-widest uppercase">LAUNCH INTENSE FLOOD ATTACK</button>
                       </div>
-                      <div className="font-mono text-xs text-right text-purple-400 font-bold">CORE STATUS: {ddosStatus}</div>
+
+                      {/* --- MAIN GRAPHIC VISUALIZER ARENA --- */}
+                      <div className="relative border border-white/5 bg-[#09090d] rounded-sm p-4 min-h-[420px] overflow-hidden z-0">
+                        {/* Background Grid Mesh */}
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808005_1px,transparent_1px),linear-gradient(to_bottom,#80808005_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+
+                        {/* ANIMASI TRAFIK BOTNET PACKETS */}
+                        <AnimatePresence>
+                          {botPackets.map((packet) => (
+                            <motion.div
+                              key={packet.id}
+                              className="absolute bg-red-500 rounded-full shadow-[0_0_10px_#ef4444] z-10 pointer-events-none"
+                              style={{ 
+                                left: `${packet.left}%`, 
+                                top: `${packet.top}%`, 
+                                width: packet.size, 
+                                height: packet.size 
+                              }}
+                              animate={{
+                                x: packet.left < 50 ? [0, 160, 190] : [0, -160, -190],
+                                y: [0, (200 - packet.top) * 0.5, (210 - packet.top) * 0.6],
+                                opacity: [1, 0.8, 0],
+                                scale: [1, 1.3, 0.3]
+                              }}
+                              transition={{ duration: 1.1, ease: "easeOut" }}
+                            />
+                          ))}
+                        </AnimatePresence>
+
+                        {/* Educational Overlay Panel */}
+                        <div className="absolute top-4 left-4 p-3 bg-black/70 border-l-2 border-cyan-400 glass max-w-xs z-30 font-mono text-[11px] pointer-events-none">
+                          <h4 className="text-cyan-400 font-bold mb-1 uppercase flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+                            Real World Impact
+                          </h4>
+                          <p className="text-gray-400 leading-relaxed mb-2">
+                            <strong className="text-white">Impact:</strong> Mengakibatkan kelumpuhan total layanan digital (Server Down / Denial of Service).
+                          </p>
+                          <button onClick={() => setIsModalOpen(true)} className="pointer-events-auto text-[9px] uppercase tracking-wider text-cyan-400 border border-cyan-400/30 px-2 py-0.5 hover:bg-cyan-400 hover:text-black transition-colors">
+                            Learn Solution
+                          </button>
+                        </div>
+
+                        {/* CENTER MATRIX NODE: CAMPUS SERVER */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20">
+                          {/* Health Bar System */}
+                          <div className="w-28 h-1.5 bg-gray-800 rounded-full mb-3 overflow-hidden border border-white/5 relative">
+                            <div 
+                              className={`h-full transition-all duration-300 ${serverHealth > 45 ? "bg-emerald-500" : "bg-red-500 shadow-[0_0_8px_#ef4444]"}`} 
+                              style={{ width: `${serverHealth}%` }} 
+                            />
+                          </div>
+
+                          {/* Status Badge Tag */}
+                          <div className="mb-2">
+                            <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${
+                              serverHealth === 100 
+                                ? "text-emerald-400 border-emerald-500/20 bg-emerald-950/20" 
+                                : serverHealth > 0 ? "text-amber-400 border-amber-500/20 bg-amber-950/20" : "text-red-500 border-red-500/20 bg-red-950/20"
+                            }`}>
+                              STATUS: {serverHealth === 100 ? "STABLE" : serverHealth > 0 ? "UNDER ATTACK" : "COLLAPSED"}
+                            </span>
+                          </div>
+
+                          {/* Firewall Dome Shield Effect */}
+                          <div className={`absolute inset-0 -m-6 rounded-full border transition-all duration-500 backdrop-blur-[0.5px] pointer-events-none flex justify-center items-center ${
+                            firewallActive 
+                              ? "border-blue-400/40 bg-blue-500/5 shadow-[0_0_35px_rgba(59,130,246,0.25)] opacity-100 scale-100" 
+                              : "opacity-0 scale-75 border-transparent"
+                          }`}>
+                            <div className="w-full h-full rounded-full border border-blue-300/10 animate-pulse"></div>
+                          </div>
+
+                          {/* Server Node Box Component */}
+                          <div className={`w-20 h-20 rounded-lg bg-[#0c0c12] border-2 flex items-center justify-center transition-all ${
+                            serverHealth > 0 ? "border-purple-500/40 shadow-xl" : "border-red-600 animate-pulse shadow-[0_0_25px_#dc2626]"
+                          }`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-10 w-10 ${serverHealth > 0 ? "text-purple-400" : "text-red-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                            </svg>
+                          </div>
+                          <span className="mt-2 font-mono text-[10px] text-gray-400 tracking-wider bg-black/40 px-2 py-0.5 rounded border border-white/5">SERVER</span>
+                        </div>
+
+                        {/* LOWER ARENA CONTROL TRIGGERS */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 z-30 w-full justify-center px-4 flex-wrap text-[10px] font-mono">
+                          <button onClick={() => setFirewallActive(!firewallActive)} className={`px-4 py-1.5 border transition-all rounded-xs uppercase tracking-wider font-bold ${
+                            firewallActive ? "bg-blue-950/40 border-blue-400 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]" : "bg-black/40 border-white/10 text-gray-500 hover:border-white/30"
+                          }`}>
+                            Firewall Dome: {firewallActive ? "ON" : "OFF"}
+                          </button>
+                          <button onClick={resetDdosSystem} className="px-4 py-1.5 bg-black/40 border border-white/10 text-white hover:bg-white/5 transition-all rounded-xs uppercase tracking-wider">
+                            Reset System
+                          </button>
+                        </div>
+
+                        {/* CRITICAL OVERLOAD REBOOT SYSTEM SCREEN */}
+                        {serverHealth <= 0 && (
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-40 bg-red-950/85 backdrop-blur-xs flex flex-col items-center justify-center font-mono">
+                            <h2 className="text-xl md:text-2xl font-black text-red-500 bg-black/80 px-6 py-3 border-2 border-red-600 rounded-sm text-center tracking-tighter shadow-[0_0_20px_#ef4444]">
+                              CRITICAL ERROR: SERVER OVERLOADED!
+                            </h2>
+                            <p className="text-white text-xs mt-3 tracking-widest">SYSTEM FAILURE</p>
+                            <button onClick={resetDdosSystem} className="mt-4 px-4 py-2 bg-white text-black font-black text-[10px] tracking-wider uppercase rounded hover:bg-gray-200">Reboot & Flush Network</button>
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* POV TERMINAL SCREEN COMPONENT LOGS */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-mono text-gray-500">// RAW STREAM NETWORK INJECTION LOGS:</span>
+                        <div className="w-full h-32 bg-black p-4 font-mono text-[10px] text-red-500 overflow-y-auto space-y-1 border border-white/5 rounded-xs">
+                          {ddosLogs.length === 0 && <span>STRESS TEST TARGET SYSTEM STANDBY...</span>}
+                          {ddosLogs.map((l, i) => <div key={i}>{l}</div>)}
+                        </div>
+                      </div>
+
+                      <div className="font-mono text-[11px] text-right text-purple-400 font-bold">CORE MATRIX STATUS: {ddosStatus}</div>
                     </motion.div>
                   )}
                </div>
@@ -627,6 +1050,28 @@ export default function WutheringShadowPortfolio() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* SOLUTION STRATEGY DETAILED MODAL */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-[#0b0b10] p-6 max-w-sm w-full border border-cyan-500/30 rounded-sm relative shadow-2xl">
+              <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white text-sm">✕</button>
+              <h3 className="text-base font-bold text-cyan-400 font-mono tracking-wider uppercase mb-3 border-b border-cyan-500/20 pb-2">DDoS Mitigation Strategies</h3>
+              <ul className="space-y-4 text-xs text-gray-400 leading-relaxed font-sans">
+                <li>
+                  <strong className="text-white block mb-0.5 font-mono">1. Rate Limiting</strong>
+                  Membatasi jumlah request dari satu alamat IP dalam jangka waktu tertentu (misal: maksimum 100 request/menit) untuk mencegah exploitasi luapan buffer.
+                </li>
+                <li>
+                  <strong className="text-white block mb-0.5 font-mono">2. Content Delivery Network (CDN)</strong>
+                  Menggunakan jaringan proksi server global (seperti Cloudflare) untuk menyerap dan menyaring lonjakan trafik masif sebelum mencapai infrastruktur server utama kampus.
+                </li>
+              </ul>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isLocalhost && (
         <div className="fixed bottom-14 right-6 z-50">
